@@ -13,43 +13,52 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Review {
-  id    Int     @id @default(autoincrement())
-  rating String 
-  comment  String
-  User User           @relation(fields: [UserId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  UserId  Int 
-  Item  Item          @relation(fields: [ItemId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  ItemId  Int
-  CreatedAt DateTime  @default(now())
-  UpdatedAt DateTime  
-  Comment Comment[]
-
+model user {
+  userId          Int         @id @default(autoincrement())
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  firstName       String?     @db.VarChar(255)
+  lastName        String?     @db.VarChar(255)
+  username        String      @unique @db.VarChar(255)
+  password        String      @db.VarChar(255)
+  email           String      @db.VarChar(255)
+  streetAddress   String?     @db.VarChar(255)
+  city            String?     @db.VarChar(255)
+  zipcode         String?     @db.VarChar(255)
+  phone           String?     @db.VarChar(255)
+  reviews         review[]
+  comments        comment[]
 }
 
-model Comment {
-  id        Int     @id @default(autoincrement())
-  User User           @relation(fields: [UserId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  UserId  Int 
-  Review  Review          @relation(fields: [reviewId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  reviewId  Int
-  comment   String
-  CreatedAt DateTime  @default(now())
-  UpdatedAt DateTime  
+model item {
+  itemId          Int         @id @default(autoincrement())
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  name            String      @db.VarChar(255)
+  imageUrl        String      @db.VarChar(255)
+  description     String      @db.VarChar(255)
+  category        String      @db.VarChar(255)
+  reviews         review[]
 }
 
-model User {
-  id    Int     @id @default(autoincrement())
-  username     String  @unique
-  email     String  @unique
-  password String
-  reviews    Review[]
-  comments  Comment[]
+model review {
+  reviewId        Int         @id @default(autoincrement())
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  userId          Int         
+  user            user        @relation(fields: [userId], references: [userId])
+  itemId          Int         
+  item            item        @relation(fields: [itemId], references: [itemId])
+  text            String      @db.VarChar(255)
+  score           Int         
+  comments        comment[]
 }
 
-model Item {
-  id        Int     @id @default(autoincrement())
-  name     String  
-  description     String  
-  reviews    Review[]
+model comment {
+  commentId       Int         @id @default(autoincrement())
+  reviewId        Int
+  review          review      @relation(fields: [reviewId], references: [reviewId])
+  userId          Int
+  user            user        @relation(fields: [userId], references: [userId])
+  text            String      @db.VarChar(255)
 }
