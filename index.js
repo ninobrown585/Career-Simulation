@@ -7,7 +7,7 @@ const bcrypt = require("bcrypt");
 const JWT_SECRET = process.env.JWT_SECRET || "1234";
 const jwt = require("jsonwebtoken");
 
-const { createNewUser, getCustomer, getUser } = require("./db");
+const { createNewUser, getCustomer, getUser } = require("./server/db");
 
 const setToken = (id) => {
   return jwt.sign({ id }, JWT_SECRET, { expiresIn: "8h" });
