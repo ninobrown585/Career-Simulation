@@ -1,138 +1,92 @@
-const { PrismaClient } = require("@prisma/client");
+const {PrismaClient} = require("@prisma/client");
+const bcrypt = require("bcrypt");
 const { faker } = require("@faker-js/faker");
-
 const prisma = new PrismaClient();
 
-// Seed data for 50 users
-async function userSeed() {
-  try {
-    for(i=0; i < 50; i++){
-      await prisma.user.create({
-        data: {
-          firstName: faker.person.firstName(),
-          lastName: faker.person.lastName(),
-          username: faker.internet.userName(), 
-          password: faker.internet.password(),
-          email: faker.internet.email(),
-          streetAddress: faker.location.streetAddress(),
-          city: faker.location.city(),
-          zipcode: faker.location.zipCode(),
-          phone: faker.phone.number()
-        }
-      });
-    }
-  } catch(error) {
-    console.log(error);
-    throw error;
-  };
-};
+/* Seeds the database */
 
-// Seed data for 50 items and order by Id
-async function itemSeed() {
-  for(i=0; i < 50; i++){
-    try {
-      await prisma.item.create({
-        data: {
-          name: faker.commerce.productName(),
-          imageUrl: faker.image.urlLoremFlickr(),
-          description: faker.commerce.productDescription(),
-          category: faker.commerce.productAdjective()
-        }
-      });
-    }
-    catch(error) {
-        console.log(error);
-        throw error;
-    };
-  };
-};
+async function main() {
+  const allUsers = await prisma.User.findMany();
+  console.log(allUsers);
 
-// Seed 2 reviews per user for random items
-async function reviewSeed() {
-  const users = await prisma.user.findMany();
-  const items = await prisma.item.findMany();
-  for (i=0; i < users.length; i++) {
-    try{
-      await prisma.review.createMany({
-        data: [
-            {
-                userId: users[i].userId,
-                itemId: items[Math.floor(Math.random() * items.length)].itemId,
-                text: faker.lorem.paragraph({ min: 1, max: 3 }),
-                score: Number(Math.floor(Math.random() * 5))
-            },
-            {
-                userId: users[i].userId,
-                itemId: items[Math.floor(Math.random() * items.length)].itemId,
-                text: faker.lorem.paragraph({ min: 1, max: 3 }),
-                score: Number(Math.floor(Math.random() * 5))
-            }
-        ]
-      });
-    }
-    catch(error) {
-      console.log(error);
-      throw error;
-    }
-  };
-};
+  /* creates an item variable and loops through 100 fake rows */
 
-// Seeds 4 comments per user for random reviews
-// NOTE: Runs slowly. Do not use with large seeds.
-async function commentSeed() {
-  const users = await prisma.user.findMany();
-  const reviews = await prisma.review.findMany();
-  for (i=0; i < users.length; i++) {
-    try{
-      await prisma.comment.createMany({
-        data: [
-            {
-                userId: users[i].userId,
-                reviewId: reviews[Math.floor(Math.random() * reviews.length)].reviewId,
-                text: faker.lorem.paragraph({min: 1, max: 3})
-            },
-            {
-                userId: users[i].userId,
-                reviewId: reviews[Math.floor(Math.random() * reviews.length)].reviewId,
-                text: faker.lorem.paragraph({min: 1, max: 3})
-            },
-            {
-                userId: users[i].userId,
-                reviewId: reviews[Math.floor(Math.random() * reviews.length)].reviewId,
-                text: faker.lorem.paragraph({min: 1, max: 3})
-            },
-            {
-                userId: users[i].userId,
-                reviewId: reviews[Math.floor(Math.random() * reviews.length)].reviewId,
-                text: faker.lorem.paragraph({min: 1, max: 3})
-            }
-        ]
-      });
-    }
-    catch(error) {
-      console.log(error);
-      throw error;
-    }
-  };
-};
+  const item = Array.from({ length: 100 }).map(() => ({
+      name: faker.commerce.product(),
+      description: faker.commerce.productDescription()
+  }))
 
-// Runs all seed functions
-async function seedAllTables() {
-  await userSeed();
-  await itemSeed();
-  await reviewSeed();
-  await commentSeed();
-};
+  /* creates an user variable and loops through 100 fake rows */
 
-seedAllTables();
+  const user = Array.from({ length: 100}).map(() => ({
+      username: faker.internet.userName(),
+      email: faker.internet.email(),
+      password: faker.internet.password()
+  }))
+  
+  /* invokes the loops */
 
-try {
-    async () => { await prisma.$disconnect(); }
+  await prisma.Item.createMany({data: item});
+  await prisma.User.createMany({data: user});
+  const Items = await prisma.Item.findMany();
+  const Users = await prisma.User.findMany();
+
+  /* creates relational fields for items */
+  
+  Items.forEach(async (Item) => {
+      await prisma.Item.update({
+          where: {
+              id: Item.id
+          },
+          data: {
+              review: {
+                  createMany: {
+                      data: Array.from({ length: 4}).map(() => ({
+                          rating: faker.number.int({min: 1, max: 5}),
+                          text: faker.lorem.sentences(),
+                          userId: faker.number.int({min: 1, max: 100}),
+                      }))
+                  }
+              }
+          }
+      })
+      
+  });
+  
+  /* creates relational fields for reviews */
+
+  const Reviews = await prisma.Review.findMany();
+  Reviews.forEach(async (Review) => {
+      await prisma.Review.update({
+          where: {
+              id: Review.id
+          },
+          data: {
+              comment: {
+                  createMany: {
+                      data: Array.from({ length: 4}).map(() => ({
+                          text: faker.lorem.sentence(),
+                          userId: faker.number.int({min: 1, max: 100}),
+                      }))
+                  }
+              }
+          }
+      })
+  })
+
 }
-catch {
-    async (error) => {
-        console.error(error);
-        await prisma.$disconnect();
-        process.exit(1);
-    }
-};
+
+console.log('db seeded');
+
+
+main()
+.then(async () => {
+  await prisma.$disconnect()
+})
+.catch(async (e) => {
+  console.error(e)
+  await prisma.$disconnect()
+  process.exit(1)
+})
+
+module.exports = { main };
