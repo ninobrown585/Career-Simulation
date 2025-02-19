@@ -3,67 +3,65 @@ const {PrismaClient} = require("@prisma/client");
 const prisma = new PrismaClient();
 const db = require("../db");
 
-/* Create review */
 
-router.post("/item/:id", async (req, res, next) => {
+// Get Reviews Made by a User
+router.get("/me", async (req, res, next) => {
     try {
-        const item = await prisma.Item.update({
-                where: {
-                    id: Number(req.params.id)
-                },
-                data: {
-                    review: {
-                        create: {                       
-                            rating: Number(req.body.rating),
-                            text: req.body.text,
-                            userId: Number(req.body.userId)                       
-                        }
-                    }
-                },
-                include: {
-                    review: true
-                }
-            })
-            
-
-        if (!item) {
-            return res.status(404).send("Review not found");
-        }
-        res.send(item);
-    } catch(error) {
-        next(error);
+      const reviews = await prisma.review.findMany({
+        where: {
+          userId: Number(req.user.id),
+          review: req.body.review,
+        },
+      });
+      res.send(reviews);
+    } catch (error) {
+      next(error);
     }
-});
-
-
+  });
 
 /* Update a review */
 
 router.put("/:id", async (req, res, next) => {
     try {
-        const review = await prisma.Review.update({
+        const review = await prisma.review.update({
                 where: {
                     id: Number(req.params.id)
                 },
                 data: {                   
                     rating: Number(req.body.rating),
-                    text: req.body.text
+                    review: req.body.review
                 }
             })
-            
-
+        
         if (!review) {
             return res.status(404).send("Review not found");
         }
+
         res.send(review);
     } catch(error) {
         next(error);
     }
 });
 
+// Get Individual Item Reviews
+router.get("/:id/reviews", async (req, res, next) => {
+    try {
+      const reviews = await prisma.reviews.findMany({
+        where: {
+            review: req.body.review,
+          itemId: Number(req.params.id)
+          
+        },
+      });
+      res.send(reviews);
+    } catch (error) {
+      next(error);
+    }
+  });
+
 router.delete("/:id", async (req, res, next) => {
     try {
-        const review = await prisma.Review.delete({
+        const review = await prisma.review.delete({
             where: {
                 id: Number(req.params.id)
             }

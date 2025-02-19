@@ -7,6 +7,28 @@ const axios = require("axios");
 const prisma = new PrismaClient();
 const JWT = process.env.JWT;
 
+const setToken = (id) => {
+  return jwt.sign({ id }, JWT, { expiresIn: "5h" });
+};
+
+// Authorize the Token with Id
+const isLoggedIn = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: "Unauthorized: No token provided" });;
+  }
+  const token = authHeader.slice(7);
+  if (!token) return next();
+  try {
+    const { id } = jwt.verify(token, JWT);
+    const user = await getUserId(id);
+    req.user = user;
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Register a new User account
 router.post("/register", async (req, res, next) => {
   try {
@@ -56,17 +78,9 @@ router.post("/login", async (req, res, next) => {
 });
 
 // Get the currently logged in instructor
-router.get("/me", async (req, res, next) => {
-  try {
-    // const { id } = req.body;
+router.get("/me", isLoggedIn, async (req, res, next) => {
+  try {  
     console.log(req.user)
-    // const user = await prisma.instructor.findUnique({where: {id}});
-    // const {
-    //   rows: [instructor],
-    // } = await db.query("SELECT * FROM instructor WHERE id = $1", [
-    //   req.user?.id,
-    // ]);
-
     res.send(req.user);
     
   } catch (error) {

@@ -3,18 +3,10 @@ const {PrismaClient} = require("@prisma/client");
 const prisma = new PrismaClient();
 const db = require("../db");
 
-// router.use((req, res, next) => {
-//     if (!req.user) {
-//         return res.status(401).send("You must be logged in to do that!");
-//     }
-//     next();
-// });
-
-/* Get all items */
 
 router.get("/", async (req, res, next) => {
     try {
-        const items = await prisma.Item.findMany({
+        const items = await prisma.item.findMany({
             include: {
                 review: true
             }
